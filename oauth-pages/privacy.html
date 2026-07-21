@@ -46,7 +46,7 @@
   <main class="wrap">
     <section class="card">
       <h1>Regles de confidentialite - Melodie</h1>
-      <p class="meta">Derniere mise a jour: 14/07/2026</p>
+      <p class="meta">Derniere mise a jour: 21/07/2026</p>
       <p>Melodie respecte votre vie privee et traite un minimum de donnees pour fonctionner.</p>
     </section>
 
@@ -81,21 +81,41 @@
     </section>
 
     <section class="card">
-      <h2>5. Stockage et securite</h2>
-      <p>Les donnees applicatives sont principalement stockees localement sur votre appareil.</p>
-      <p>Vous pouvez deconnecter Google Drive et supprimer les donnees locales a tout moment.</p>
-    </section>
-
-    <section class="card">
-      <h2>6. Vos droits</h2>
+      <h2>5. Stockage et securite des donnees</h2>
+      <p>Melodie met en oeuvre des mesures techniques pour proteger vos donnees, y compris les donnees sensibles issues de Google Drive&nbsp;:</p>
       <ul>
-        <li>Deconnecter votre compte Google dans l'application</li>
-        <li>Supprimer les donnees locales via les parametres Android ou la reinitialisation de l'app</li>
+        <li><strong>Chiffrement en transit&nbsp;:</strong> toutes les communications avec les serveurs Google (authentification et acces Drive) utilisent le protocole HTTPS/TLS.</li>
+        <li><strong>Stockage securise des jetons&nbsp;:</strong> les jetons d'acces OAuth sont geres par les services officiels Google Play sur l'appareil (Google Sign-In / GoogleAuthUtil) et ne sont pas transmis a des serveurs tiers.</li>
+        <li><strong>Traitement local&nbsp;:</strong> les metadonnees et le cache technique sont stockes localement sur votre appareil, dans le stockage prive de l'application protege par le bac a sable Android.</li>
+        <li><strong>Minimisation&nbsp;:</strong> Melodie n'accede qu'aux fichiers audio et metadonnees necessaires a la lecture, en lecture seule, et ne modifie jamais votre Google Drive.</li>
+        <li><strong>Aucun serveur intermediaire&nbsp;:</strong> vos contenus Drive transitent directement entre votre appareil et Google&nbsp;; Melodie n'exploite aucun serveur qui stockerait vos fichiers.</li>
+        <li><strong>Suppression&nbsp;:</strong> vous pouvez a tout moment deconnecter Google Drive et effacer les donnees locales depuis l'application ou les parametres Android&nbsp;; la revocation de l'acces est egalement possible depuis votre compte Google.</li>
       </ul>
     </section>
 
     <section class="card">
-      <h2>7. Contact</h2>
+      <h2>6. Conformite a la politique Google API Services (Limited Use)</h2>
+      <p>L'utilisation et le transfert par Melodie des informations recues depuis les API Google respectent la
+        <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>,
+        y compris ses exigences de Limited Use.</p>
+      <ul>
+        <li>Les donnees Google Drive sont utilisees uniquement pour fournir et ameliorer les fonctionnalites visibles par l'utilisateur (affichage et lecture de votre musique).</li>
+        <li>Ces donnees ne sont ni vendues, ni transferees a des tiers, ni utilisees a des fins publicitaires.</li>
+        <li>Aucun etre humain ne consulte ces donnees, sauf accord explicite de votre part, pour des raisons de securite, ou pour se conformer a la loi.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>7. Vos droits</h2>
+      <ul>
+        <li>Deconnecter votre compte Google dans l'application</li>
+        <li>Supprimer les donnees locales via les parametres Android ou la reinitialisation de l'app</li>
+        <li>Revoquer l'acces de Melodie depuis la page Securite de votre compte Google</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>8. Contact</h2>
       <p>Pour toute question relative a la confidentialite: <a href="mailto:nbillaud@gmail.com">nbillaud@gmail.com</a></p>
       <p><a href="./index.html">Retour a l'accueil</a></p>
     </section>
