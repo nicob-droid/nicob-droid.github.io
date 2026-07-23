@@ -23,15 +23,14 @@
     // n'est jamais envoye au serveur (GitHub Pages) ni dans le referer.
     //   #token=<oauth_access_token>&key=<api_key>&appId=<project_number>&redirect=<deep_link>
     // Resultat renvoye a l'app via un deep link :
-    //   melodie://picker?done=<nombre_de_morceaux>   (les fichiers sont accordes cote Drive ;
-    //     l'app les enumere elle-meme via files.list -> aucune limite de taille d'URL)
+    //   melodie://picker?folderId=<id>&folderName=<nom>   (dossier accorde cote Drive ;
+    //     l'app enumere son contenu via files.list 'folderId' in parents)
     //   melodie://picker?cancel=1
     //   melodie://picker?error=<message>
     //
-    // On selectionne des FICHIERS audio (multi-selection) et non un dossier :
-    // le scope drive.file n'accorde l'acces qu'aux fichiers explicitement choisis.
-    // Une fois choisis, ces fichiers sont accessibles a l'app par files.list, qui
-    // reconstitue l'affichage par albums cote application.
+    // On selectionne un DOSSIER (1 seul tap). Depuis 2024, le scope drive.file accorde
+    // l'acces a TOUT le contenu d'un dossier choisi (fichiers + sous-dossiers) : l'app
+    // enumere ensuite chaque dossier par parent et reconstitue l'affichage par albums.
     // ------------------------------------------------------------------
 
     function parseFragment() {
@@ -90,30 +89,23 @@
       if (!DEVELOPER_KEY) { redirectError('Cle API Picker manquante.'); return; }
 
       try {
-        // Sous drive.file, seuls les FICHIERS explicitement choisis sont accessibles :
-        // selectionner un dossier n'expose PAS son contenu. On selectionne donc les
-        // fichiers audio (multi-selection). Mode GRID (defaut) = vignettes ; un TAP SIMPLE
-        // sur un fichier le coche (pastille), un second tap le decoche. Puis "Selectionner".
-        var myDrive = new google.picker.DocsView(google.picker.ViewId.DOCS)
+        // Depuis 2024, drive.file accorde l'acces a TOUT le contenu d'un dossier choisi.
+        // On presente donc la selection de DOSSIER (1 seul tap, pas de multi-selection).
+        var myDrive = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
             .setIncludeFolders(true)
-            .setSelectFolderEnabled(false)
+            .setSelectFolderEnabled(true)
             .setOwnedByMe(true)
-            .setParent('root')
-            .setMimeTypes('audio/mpeg,audio/mp4,audio/flac,audio/x-flac,audio/ogg,' +
-                'application/ogg,audio/wav,audio/x-wav,audio/aac,audio/opus,audio/webm');
+            .setParent('root');
 
-        var sharedWithMe = new google.picker.DocsView(google.picker.ViewId.DOCS)
+        var sharedWithMe = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
             .setIncludeFolders(true)
-            .setSelectFolderEnabled(false)
-            .setOwnedByMe(false)
-            .setMimeTypes('audio/mpeg,audio/mp4,audio/flac,audio/x-flac,audio/ogg,' +
-                'application/ogg,audio/wav,audio/x-wav,audio/aac,audio/opus,audio/webm');
+            .setSelectFolderEnabled(true)
+            .setOwnedByMe(false);
 
         var builder = new google.picker.PickerBuilder()
-            .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
             .setOAuthToken(OAUTH_TOKEN)
             .setDeveloperKey(DEVELOPER_KEY)
-            .setTitle('Entrez dans un dossier, puis touchez chaque morceau (tap simple)')
+            .setTitle('Choisissez un dossier de musique (1 seul appui)')
             .addView(myDrive)
             .addView(sharedWithMe)
             .enableFeature(google.picker.Feature.SUPPORT_DRIVES)
@@ -132,17 +124,18 @@
       var action = data[google.picker.Response.ACTION];
       if (action == google.picker.Action.PICKED) {
         var docs = data[google.picker.Response.DOCUMENTS] || [];
-        var count = 0;
+        // On prend le premier dossier selectionne.
+        var folder = null;
         for (var i = 0; i < docs.length; i++) {
           var mime = docs[i][google.picker.Document.MIME_TYPE] || '';
-          if (mime === 'application/vnd.google-apps.folder') continue; // ignore dossiers
-          count++;
+          if (mime === 'application/vnd.google-apps.folder') { folder = docs[i]; break; }
         }
-        if (count === 0) { redirect('?cancel=1'); return; }
-        // Les fichiers choisis sont accordes cote Drive ; l'app les enumere via files.list
-        // global (aucune limite de taille d'URL). On renvoie juste le nombre.
-        setStatus(count + ' morceau(x) selectionne(s), import en cours...');
-        redirect('?done=' + count);
+        if (!folder) { redirect('?cancel=1'); return; }
+        var id = folder[google.picker.Document.ID] || '';
+        var name = folder[google.picker.Document.NAME] || '';
+        if (!id) { redirect('?cancel=1'); return; }
+        setStatus('Dossier « ' + name + ' » selectionne, import en cours...');
+        redirect('?folderId=' + encodeURIComponent(id) + '&folderName=' + encodeURIComponent(name));
       } else if (action == google.picker.Action.CANCEL) {
         redirect('?cancel=1');
       }
