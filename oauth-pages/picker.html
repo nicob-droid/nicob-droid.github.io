@@ -84,15 +84,30 @@
       if (!DEVELOPER_KEY) { redirectError('Cle API Picker manquante.'); return; }
 
       try {
-        var view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
-            .setSelectFolderEnabled(true)
+        // Vue "Mon Drive" : demarre a la racine et permet de NAVIGUER dans
+        // l'arborescence (on entre dans un dossier en le touchant, on le
+        // selectionne avec le bouton). setParent('root') evite la liste plate.
+        var myDrive = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
             .setIncludeFolders(true)
-            .setMimeTypes('application/vnd.google-apps.folder');
+            .setSelectFolderEnabled(true)
+            .setOwnedByMe(true)
+            .setParent('root')
+            .setMode(google.picker.DocsViewMode.LIST);
+
+        // Vue "Partages avec moi" : beaucoup de bibliotheques musicales sont
+        // partagees et n'apparaissent pas dans "Mon Drive".
+        var sharedWithMe = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+            .setIncludeFolders(true)
+            .setSelectFolderEnabled(true)
+            .setOwnedByMe(false)
+            .setMode(google.picker.DocsViewMode.LIST);
 
         var builder = new google.picker.PickerBuilder()
             .setOAuthToken(OAUTH_TOKEN)
             .setDeveloperKey(DEVELOPER_KEY)
-            .addView(view)
+            .setTitle('Choisissez un dossier de musique')
+            .addView(myDrive)
+            .addView(sharedWithMe)
             .enableFeature(google.picker.Feature.SUPPORT_DRIVES)
             .setCallback(pickerCallback);
 
