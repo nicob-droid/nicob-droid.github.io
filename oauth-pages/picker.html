@@ -23,14 +23,15 @@
     // n'est jamais envoye au serveur (GitHub Pages) ni dans le referer.
     //   #token=<oauth_access_token>&key=<api_key>&appId=<project_number>&redirect=<deep_link>
     // Resultat renvoye a l'app via un deep link :
-    //   melodie://picker?ids=<fileId1>,<fileId2>,...   (fichiers audio choisis)
+    //   melodie://picker?done=<nombre_de_morceaux>   (les fichiers sont accordes cote Drive ;
+    //     l'app les enumere elle-meme via files.list -> aucune limite de taille d'URL)
     //   melodie://picker?cancel=1
     //   melodie://picker?error=<message>
     //
     // On selectionne des FICHIERS audio (multi-selection) et non un dossier :
     // le scope drive.file n'accorde l'acces qu'aux fichiers explicitement choisis.
-    // L'app recupere ensuite le dossier parent de chaque fichier (files.get.parents)
-    // pour reconstituer l'affichage par albums.
+    // Une fois choisis, ces fichiers sont accessibles a l'app par files.list, qui
+    // reconstitue l'affichage par albums cote application.
     // ------------------------------------------------------------------
 
     function parseFragment() {
@@ -133,18 +134,19 @@
       var action = data[google.picker.Response.ACTION];
       if (action == google.picker.Action.PICKED) {
         var docs = data[google.picker.Response.DOCUMENTS] || [];
-        var ids = [];
+        var count = 0;
         for (var i = 0; i < docs.length; i++) {
           var d = docs[i];
           var mime = d[google.picker.Document.MIME_TYPE] || '';
           // On ignore un eventuel dossier selectionne par erreur.
           if (mime === 'application/vnd.google-apps.folder') continue;
-          var id = d[google.picker.Document.ID];
-          if (id) ids.push(id);
+          count++;
         }
-        if (ids.length === 0) { redirect('?cancel=1'); return; }
-        setStatus(ids.length + ' morceau(x) selectionne(s), retour a l app...');
-        redirect('?ids=' + encodeURIComponent(ids.join(',')));
+        if (count === 0) { redirect('?cancel=1'); return; }
+        // Les fichiers sont desormais accordes cote Drive : on renvoie juste le NOMBRE.
+        // L'app les enumere via files.list (aucune limite de taille d'URL).
+        setStatus(count + ' morceau(x) selectionne(s), import en cours...');
+        redirect('?done=' + count);
       } else if (action == google.picker.Action.CANCEL) {
         redirect('?cancel=1');
       }
