@@ -91,16 +91,16 @@
 
       try {
         // Vue "Mon Drive" : on NAVIGUE dans l'arborescence, on entre dans un
-        // dossier d'album, puis on selectionne les fichiers audio (multi-selection).
-        // Astuce : une fois dans un dossier, "tout selectionner" prend tout l'album.
+        // dossier d'album, puis un simple TAP sur chaque morceau le coche.
+        // Mode GRID (par defaut) = vignettes avec cases a cocher = multi-selection fiable.
+        // (Le mode LIST rendait le tap non-selectionnant sur mobile.)
         var myDrive = new google.picker.DocsView(google.picker.ViewId.DOCS)
             .setIncludeFolders(true)
             .setSelectFolderEnabled(false)
             .setOwnedByMe(true)
             .setParent('root')
             .setMimeTypes('audio/mpeg,audio/mp4,audio/flac,audio/x-flac,audio/ogg,' +
-                'application/ogg,audio/wav,audio/x-wav,audio/aac,audio/opus,audio/webm')
-            .setMode(google.picker.DocsViewMode.LIST);
+                'application/ogg,audio/wav,audio/x-wav,audio/aac,audio/opus,audio/webm');
 
         // Vue "Partages avec moi".
         var sharedWithMe = new google.picker.DocsView(google.picker.ViewId.DOCS)
@@ -108,16 +108,15 @@
             .setSelectFolderEnabled(false)
             .setOwnedByMe(false)
             .setMimeTypes('audio/mpeg,audio/mp4,audio/flac,audio/x-flac,audio/ogg,' +
-                'application/ogg,audio/wav,audio/x-wav,audio/aac,audio/opus,audio/webm')
-            .setMode(google.picker.DocsViewMode.LIST);
+                'application/ogg,audio/wav,audio/x-wav,audio/aac,audio/opus,audio/webm');
 
         var builder = new google.picker.PickerBuilder()
+            .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
             .setOAuthToken(OAUTH_TOKEN)
             .setDeveloperKey(DEVELOPER_KEY)
-            .setTitle('Entrez dans un dossier puis selectionnez les morceaux')
+            .setTitle('Entrez dans un dossier, puis touchez chaque morceau')
             .addView(myDrive)
             .addView(sharedWithMe)
-            .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
             .enableFeature(google.picker.Feature.SUPPORT_DRIVES)
             .setCallback(pickerCallback);
 
