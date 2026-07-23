@@ -23,9 +23,14 @@
     // n'est jamais envoye au serveur (GitHub Pages) ni dans le referer.
     //   #token=<oauth_access_token>&key=<api_key>&appId=<project_number>&redirect=<deep_link>
     // Resultat renvoye a l'app via un deep link :
-    //   melodie://picker?id=<folderId>&name=<folderName>
+    //   melodie://picker?ids=<fileId1>,<fileId2>,...   (fichiers audio choisis)
     //   melodie://picker?cancel=1
     //   melodie://picker?error=<message>
+    //
+    // On selectionne des FICHIERS audio (multi-selection) et non un dossier :
+    // le scope drive.file n'accorde l'acces qu'aux fichiers explicitement choisis.
+    // L'app recupere ensuite le dossier parent de chaque fichier (files.get.parents)
+    // pour reconstituer l'affichage par albums.
     // ------------------------------------------------------------------
 
     function parseFragment() {
@@ -84,30 +89,34 @@
       if (!DEVELOPER_KEY) { redirectError('Cle API Picker manquante.'); return; }
 
       try {
-        // Vue "Mon Drive" : demarre a la racine et permet de NAVIGUER dans
-        // l'arborescence (on entre dans un dossier en le touchant, on le
-        // selectionne avec le bouton). setParent('root') evite la liste plate.
-        var myDrive = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+        // Vue "Mon Drive" : on NAVIGUE dans l'arborescence, on entre dans un
+        // dossier d'album, puis on selectionne les fichiers audio (multi-selection).
+        // Astuce : une fois dans un dossier, "tout selectionner" prend tout l'album.
+        var myDrive = new google.picker.DocsView(google.picker.ViewId.DOCS)
             .setIncludeFolders(true)
-            .setSelectFolderEnabled(true)
+            .setSelectFolderEnabled(false)
             .setOwnedByMe(true)
             .setParent('root')
+            .setMimeTypes('audio/mpeg,audio/mp4,audio/flac,audio/x-flac,audio/ogg,' +
+                'application/ogg,audio/wav,audio/x-wav,audio/aac,audio/opus,audio/webm')
             .setMode(google.picker.DocsViewMode.LIST);
 
-        // Vue "Partages avec moi" : beaucoup de bibliotheques musicales sont
-        // partagees et n'apparaissent pas dans "Mon Drive".
-        var sharedWithMe = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+        // Vue "Partages avec moi".
+        var sharedWithMe = new google.picker.DocsView(google.picker.ViewId.DOCS)
             .setIncludeFolders(true)
-            .setSelectFolderEnabled(true)
+            .setSelectFolderEnabled(false)
             .setOwnedByMe(false)
+            .setMimeTypes('audio/mpeg,audio/mp4,audio/flac,audio/x-flac,audio/ogg,' +
+                'application/ogg,audio/wav,audio/x-wav,audio/aac,audio/opus,audio/webm')
             .setMode(google.picker.DocsViewMode.LIST);
 
         var builder = new google.picker.PickerBuilder()
             .setOAuthToken(OAUTH_TOKEN)
             .setDeveloperKey(DEVELOPER_KEY)
-            .setTitle('Choisissez un dossier de musique')
+            .setTitle('Entrez dans un dossier puis selectionnez les morceaux')
             .addView(myDrive)
             .addView(sharedWithMe)
+            .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
             .enableFeature(google.picker.Feature.SUPPORT_DRIVES)
             .setCallback(pickerCallback);
 
@@ -123,10 +132,19 @@
     function pickerCallback(data) {
       var action = data[google.picker.Response.ACTION];
       if (action == google.picker.Action.PICKED) {
-        var doc = data[google.picker.Response.DOCUMENTS][0];
-        var id = doc[google.picker.Document.ID];
-        var name = doc[google.picker.Document.NAME];
-        redirect('?id=' + encodeURIComponent(id) + '&name=' + encodeURIComponent(name));
+        var docs = data[google.picker.Response.DOCUMENTS] || [];
+        var ids = [];
+        for (var i = 0; i < docs.length; i++) {
+          var d = docs[i];
+          var mime = d[google.picker.Document.MIME_TYPE] || '';
+          // On ignore un eventuel dossier selectionne par erreur.
+          if (mime === 'application/vnd.google-apps.folder') continue;
+          var id = d[google.picker.Document.ID];
+          if (id) ids.push(id);
+        }
+        if (ids.length === 0) { redirect('?cancel=1'); return; }
+        setStatus(ids.length + ' morceau(x) selectionne(s), retour a l app...');
+        redirect('?ids=' + encodeURIComponent(ids.join(',')));
       } else if (action == google.picker.Action.CANCEL) {
         redirect('?cancel=1');
       }
