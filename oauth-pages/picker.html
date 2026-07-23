@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Melodie - Selection d'un dossier Google Drive</title>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%;
+      background: #111217; color: #e8eaf0; font-family: Roboto, Arial, sans-serif; }
+    #status { padding: 24px; font-size: 15px; text-align: center; line-height: 1.5; }
+    .err { color: #ff8a80; }
+    a.btn { display: inline-block; margin-top: 16px; padding: 10px 18px; border-radius: 8px;
+      background: #8ab4f8; color: #111; text-decoration: none; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div id="status">Ouverture du selecteur Google Drive...</div>
+
+  <script>
+    // ------------------------------------------------------------------
+    // Cette page est ouverte dans un Chrome Custom Tab par l'app Android.
+    // Les parametres sont transmis dans le FRAGMENT de l'URL (#...), qui
+    // n'est jamais envoye au serveur (GitHub Pages) ni dans le referer.
+    //   #token=<oauth_access_token>&key=<api_key>&appId=<project_number>&redirect=<deep_link>
+    // Resultat renvoye a l'app via un deep link :
+    //   melodie://picker?id=<folderId>&name=<folderName>
+    //   melodie://picker?cancel=1
+    //   melodie://picker?error=<message>
+    // ------------------------------------------------------------------
+
+    function parseFragment() {
+      var out = {};
+      var frag = (window.location.hash || '').replace(/^#/, '');
+      frag.split('&').forEach(function (pair) {
+        if (!pair) return;
+        var kv = pair.split('=');
+        out[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
+      });
+      return out;
+    }
+
+    var params        = parseFragment();
+    var OAUTH_TOKEN   = params.token   || '';
+    var DEVELOPER_KEY = params.key     || '';
+    var APP_ID        = params.appId   || '';
+    var REDIRECT      = params.redirect || 'melodie://picker';
+
+    var pickerApiLoaded = false;
+
+    function setStatus(msg, isError) {
+      var el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = isError ? 'err' : '';
+    }
+
+    function redirect(query) {
+      // Nettoie le fragment (token) avant de quitter, par prudence.
+      try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
+      window.location.href = REDIRECT + query;
+    }
+
+    function redirectError(msg) {
+      setStatus('Erreur : ' + msg, true);
+      // Laisse une chance de lire le message, puis renvoie vers l'app.
+      setTimeout(function () { redirect('?error=' + encodeURIComponent(msg)); }, 1500);
+    }
+
+    // Appele par api.js (?onload=onApiLoad)
+    function onApiLoad() {
+      try {
+        gapi.load('picker', { 'callback': onPickerApiLoad });
+      } catch (e) {
+        redirectError('Chargement API Picker: ' + e);
+      }
+    }
+
+    function onPickerApiLoad() {
+      pickerApiLoaded = true;
+      createPicker();
+    }
+
+    function createPicker() {
+      if (!OAUTH_TOKEN) { redirectError('Jeton d acces manquant.'); return; }
+      if (!DEVELOPER_KEY) { redirectError('Cle API Picker manquante.'); return; }
+
+      try {
+        var view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+            .setSelectFolderEnabled(true)
+            .setIncludeFolders(true)
+            .setMimeTypes('application/vnd.google-apps.folder');
+
+        var builder = new google.picker.PickerBuilder()
+            .setOAuthToken(OAUTH_TOKEN)
+            .setDeveloperKey(DEVELOPER_KEY)
+            .addView(view)
+            .enableFeature(google.picker.Feature.SUPPORT_DRIVES)
+            .setCallback(pickerCallback);
+
+        if (APP_ID) { builder.setAppId(APP_ID); }
+
+        builder.build().setVisible(true);
+        setStatus('');
+      } catch (e) {
+        redirectError('Creation Picker: ' + e);
+      }
+    }
+
+    function pickerCallback(data) {
+      var action = data[google.picker.Response.ACTION];
+      if (action == google.picker.Action.PICKED) {
+        var doc = data[google.picker.Response.DOCUMENTS][0];
+        var id = doc[google.picker.Document.ID];
+        var name = doc[google.picker.Document.NAME];
+        redirect('?id=' + encodeURIComponent(id) + '&name=' + encodeURIComponent(name));
+      } else if (action == google.picker.Action.CANCEL) {
+        redirect('?cancel=1');
+      }
+    }
+
+    if (!OAUTH_TOKEN || !DEVELOPER_KEY) {
+      redirectError('Parametres manquants (token/cle).');
+    }
+  </script>
+  <script async defer src="https://apis.google.com/js/api.js?onload=onApiLoad"></script>
+</body>
+</html>
+
