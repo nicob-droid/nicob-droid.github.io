@@ -47,6 +47,23 @@ foreach ($f in $required) {
 }
 Write-Ok "Fichiers requis presents"
 
+# --- Verification des jetons Search Console (anti-casse) --------------
+# On garantit que les DEUX methodes de verification restent presentes :
+#   1) methode "fichier HTML"  : google62d797a6a60bee31.html
+#   2) methode "balise HTML"   : meta google-site-verification dans index.html
+$metaToken = "Co0t0vrsAMHqmUOeorHpQBPe3uUr3f-fH-9Q5fxc9eE"
+$indexHtml = Get-Content (Join-Path $scriptDir "index.html") -Raw
+if ($indexHtml -notmatch [regex]::Escape($metaToken)) {
+    throw "La balise google-site-verification ($metaToken) est absente de index.html. Publication annulee pour ne pas casser la verification de propriete."
+}
+Write-Ok "Jeton Search Console (balise meta) present dans index.html"
+
+$fileToken = Get-Content (Join-Path $scriptDir "google62d797a6a60bee31.html") -Raw
+if ($fileToken -notmatch "google-site-verification") {
+    throw "Le fichier google62d797a6a60bee31.html ne contient pas le jeton attendu. Publication annulee."
+}
+Write-Ok "Jeton Search Console (fichier HTML) present"
+
 # --- Initialisation du depot -----------------------------------------
 if (-not (Test-Path (Join-Path $scriptDir ".git"))) {
     Write-Step "Initialisation du depot git"
